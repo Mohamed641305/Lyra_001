@@ -1,0 +1,10 @@
+SpeechRecognition
+PyAudio
+pyttsx3
+pyautogui
+pyperclip
+pillow
+numpy
+pywebview
+opencv-python
+mediapipe==0.10.14

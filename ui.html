@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ar"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lyra</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--c:#00f0ff;--bg:#020a10;--tx:#d6fbff}
+*{margin:0;box-sizing:border-box}
+html,body{height:100%;background:radial-gradient(circle at 50% 45%,#06222c 0,var(--bg) 62%);color:var(--tx);font-family:Cairo,Rajdhani,sans-serif;overflow:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#name{position:fixed;top:22px;left:26px;font:700 clamp(30px,6vw,46px)/1 Rajdhani,sans-serif;letter-spacing:.4em;color:var(--c);text-shadow:0 0 20px var(--c)}
+#state{position:fixed;top:26px;right:26px;font-size:15px;color:var(--c);opacity:.9}
+#state i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-left:8px;box-shadow:0 0 12px var(--c)}
+#log{position:fixed;left:0;right:0;bottom:26px;text-align:center;padding:0 24px;font-size:18px;line-height:1.7;text-shadow:0 0 10px #000}
+#log b{color:var(--c);margin-inline-end:8px}
+#log div{opacity:.55}#log div:last-child{opacity:1}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="name">Lyra</div>
+<div id="state"><span id="st">جاهزة</span><i></i></div>
+<div id="log"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const R=new THREE.WebGLRenderer({canvas:document.getElementById('c'),alpha:true,antialias:true});
+R.setPixelRatio(Math.min(devicePixelRatio,2));
+const S=new THREE.Scene(),K=new THREE.PerspectiveCamera(50,1,.1,50);K.position.z=5.4;
+const G=new THREE.Group();S.add(G);
+const COL=0x00f0ff,ADD=THREE.AdditiveBlending,mat=(o)=>new THREE.LineBasicMaterial({color:COL,transparent:true,opacity:o,blending:ADD});
+G.add(new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(1.4,1)),mat(.7)));
+const core=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(.65,0)),mat(1));G.add(core);
+const rings=[0,1,2].map(i=>{const m=new THREE.Mesh(new THREE.TorusGeometry(1.95+i*.28,.012,8,160),new THREE.MeshBasicMaterial({color:COL,transparent:true,opacity:.8-i*.15,blending:ADD}));m.rotation.set(i*1.05,i*.6,0);G.add(m);return m});
+const N=500,P=new Float32Array(N*3);
+for(let i=0;i<N;i++){const r=2.8+Math.random()*1.6,a=Math.random()*6.283,b=Math.acos(2*Math.random()-1);P.set([r*Math.sin(b)*Math.cos(a),r*Math.sin(b)*Math.sin(a),r*Math.cos(b)],i*3)}
+const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(P,3));
+const pts=new THREE.Points(pg,new THREE.PointsMaterial({color:COL,size:.03,transparent:true,opacity:.7,blending:ADD}));G.add(pts);
+function fit(){R.setSize(innerWidth,innerHeight,false);K.aspect=innerWidth/innerHeight;K.position.z=innerWidth<innerHeight?8:5.4;K.updateProjectionMatrix()}
+addEventListener('resize',fit);fit();
+const ST={idle:{t:'جاهزة',v:1,p:.02},listening:{t:'بسمعك',v:2.2,p:.06},thinking:{t:'بفكر',v:5,p:.03},speaking:{t:'بتكلم',v:1.6,p:.12}};
+let cur=ST.idle,sc=1,t0=0;
+const calm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+(function loop(t){requestAnimationFrame(loop);const dt=(t-t0)/1000||.016;t0=t;
+  const v=calm?.2:cur.v;G.rotation.y+=.2*dt*v;core.rotation.x-=.5*dt*v;
+  rings.forEach((r,i)=>{r.rotation[i%2?'x':'y']+=(.3+i*.15)*dt*v*(cur===ST.thinking&&i==1?-1:1)});
+  pts.rotation.y-=.04*dt*v;
+  const tg=1+(calm?0:Math.sin(t/(cur===ST.speaking?90:420))*cur.p);sc+=(tg-sc)*.15;G.scale.setScalar(sc);
+  R.render(S,K)})(0);
+window.lyra={
+  set(s){cur=ST[s]||ST.idle;document.getElementById('st').textContent=cur.t},
+  log(who,txt){const l=document.getElementById('log'),d=document.createElement('div');d.innerHTML='<b></b><span></span>';
+    d.firstChild.textContent=who;d.lastChild.textContent=txt;l.appendChild(d);while(l.children.length>3)l.firstChild.remove()}
+};
+</script></body></html>
